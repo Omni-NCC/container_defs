@@ -1,4 +1,4 @@
-FROM debian:12-slim-common
+FROM debian:12-slim-docker
 
 LABEL maintainer="lapluis"
 
