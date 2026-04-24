@@ -1,0 +1,38 @@
+FROM nvcr.io/nvidia/cuda:12.8.1-cudnn-devel-ubi9
+
+LABEL maintainer="lapluis"
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+ENV UV_NO_BUILD_ISOLATION=1 \
+    UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE="copy" \
+    UV_TORCH_BACKEND="cu128" \
+    UV_CACHE_DIR="/opt/uv/cache" \
+    UV_PYTHON_BIN_DIR="/opt/uv/bin" \
+    UV_PYTHON_INSTALL_DIR="/opt/uv/python" \
+    UV_PYTHON_CACHE_DIR="/opt/uv/cache/python" \
+    UV_DEFAULT_INDEX="https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple" \
+    PATH="/opt/python3/bin:$PATH"
+
+RUN uv venv /opt/python3 --python 3.13
+
+RUN --mount=type=cache,target=/opt/uv/cache \
+    uv pip install ninja pip "setuptools<82" wheel
+
+RUN --mount=type=cache,target=/opt/uv/cache \
+    uv pip install maturin puccinialin ipdb pre-commit rootutils
+
+RUN --mount=type=cache,target=/opt/uv/cache \
+    uv pip install hydra-core hydra-colorlog hydra-optuna-sweeper opencv-python openpyxl seaborn nibabel zstandard
+
+RUN --mount=type=cache,target=/opt/uv/cache \
+    uv pip install "torch==2.10" "torchvision==0.25" "torchaudio==2.10" --index-url https://download.pytorch.org/whl/${UV_TORCH_BACKEND}
+
+RUN --mount=type=cache,target=/opt/uv/cache \
+    uv pip install datasets einops fvcore neptune neptune-scale nvidia-ml-py "numba==v0.61.2" pytorch_lightning thop timm torchsummary "transformers<5" wandb
+
+RUN --mount=type=cache,target=/opt/uv/cache \
+    MAX_JOBS=2 uv pip install flash-attn "mamba-ssm[causal-conv1d]" monai "vllm==0.18" 
+
+WORKDIR /app
